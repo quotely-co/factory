@@ -1,35 +1,50 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Suspense, lazy, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, useSearchParams } from "react-router-dom";
+import Cookies from "js-cookie";
+import { Toaster } from "react-hot-toast";
+import LoadingSpinner from "./components/common/Loading";
 
-function App() {
-  const [count, setCount] = useState(0)
+// Lazy-loaded components
+const Support = lazy(() => import("./pages/Support"));
+const ContactUs = lazy(() => import("./pages/ContactUs"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const FactoryDashboard = lazy(() => import("./pages/factory/FactoryDashboard"));
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+// Token handler component
+const TokenHandler = () => {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
 
-export default App
+  useEffect(() => {
+    if (token) {
+      // Save token in cookies
+      Cookies.set("authToken", token, { expires: 7, path: "/" });
+
+      // Remove token from URL for security
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [token]);
+
+  return null; // No UI needed
+};
+
+const App = () => (
+  <Router>
+    <TokenHandler /> {/* Handles token extraction and storage */}
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/*" element={<FactoryDashboard />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/contact" element={<ContactUs />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+      </Routes>
+    </Suspense>
+    <Toaster />
+  </Router>
+);
+
+export default App;
