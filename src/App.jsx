@@ -30,7 +30,7 @@ function AppRouter() {
   }, [subdomain]);
 
   if (isValidSubdomain === null) {
-    window.location.href = "https://quotely.shop"; // Redirect to main site if no subdomain
+    // window.location.href = "https://quotely.shop"; // Redirect to main site if no subdomain
     return <LoadingSpinner />; // Show loading while checking
   }
 
