@@ -18,7 +18,7 @@ function AppRouter() {
   const subdomain = hasSubdomain ? hostParts[0] : null;
 
   useEffect(() => {
-    alert("Please note that this is a demo version of the app. The subdomain check is not functional in this demo.");
+    alert(subdomain)
     if (subdomain) {
       fetch(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`)
         .then((res) => res.json())
@@ -32,6 +32,7 @@ function AppRouter() {
   }, [subdomain]);
 
   if (isValidSubdomain === null) {
+    window.location.href = "https://quotely.shop"; // Redirect to main site if no subdomain
     return <LoadingSpinner />; // Show loading while checking
   }
 
