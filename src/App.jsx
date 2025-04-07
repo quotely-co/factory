@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LoadingSpinner from "./components/common/Loading";
+import axios from "axios";
 
 const FactoryDashboard = lazy(() => import("./pages/factory/FactoryDashboard"));
 const Support = lazy(() => import("./pages/Support"));
@@ -18,14 +19,11 @@ function AppRouter() {
   const subdomain = hasSubdomain ? hostParts[0] : null;
 
   useEffect(() => {
-    alert(subdomain)
     if (subdomain) {
-      fetch(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setIsValidSubdomain(data.valid); // Backend should return { valid: true/false }
-        })
-        .catch(() => setIsValidSubdomain(false)); // If error, assume invalid
+      const res = axios.get(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`);
+      console.log('====================================');
+      console.log(res);
+      console.log('====================================');
     } else {
       setIsValidSubdomain(true); // No subdomain, so allow access
     }
