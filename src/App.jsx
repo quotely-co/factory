@@ -20,7 +20,7 @@ function AppRouter() {
 
   useEffect(() => {
     if (subdomain) {
-      fetch(`/api/check-subdomain?subdomain=${subdomain}`)
+      fetch(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`)
         .then((res) => res.json())
         .then((data) => {
           setIsValidSubdomain(data.valid); // Backend should return { valid: true/false }
