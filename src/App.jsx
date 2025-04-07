@@ -19,6 +19,7 @@ function AppRouter() {
   const subdomain = hasSubdomain ? hostParts[0] : null;
 
   useEffect(() => {
+    alert("Please note that this is a demo version of the app. The subdomain check is not functional in this demo.");
     if (subdomain) {
       fetch(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`)
         .then((res) => res.json())
