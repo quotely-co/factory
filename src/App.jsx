@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LoadingSpinner from "./components/common/Loading";
 
-const Landing = lazy(() => import("./pages/Landing"));
 const FactoryDashboard = lazy(() => import("./pages/factory/FactoryDashboard"));
 const Support = lazy(() => import("./pages/Support"));
 const ContactUs = lazy(() => import("./pages/ContactUs"));
@@ -44,7 +43,6 @@ function AppRouter() {
             <Route path="/*" element={<FactoryDashboard subdomain={subdomain} />} />
           ) : (
             <>
-              <Route path="/" element={<Landing />} />
               <Route path="/support" element={<Support />} />
               <Route path="/contact" element={<ContactUs />} />
               <Route path="/terms" element={<TermsOfService />} />
