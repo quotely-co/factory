@@ -19,14 +19,23 @@ function AppRouter() {
   const subdomain = hasSubdomain ? hostParts[0] : null;
 
   useEffect(() => {
-    if (subdomain) {
-      const res = axios.get(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`);
-      console.log('====================================');
-      console.log(res);
-      console.log('====================================');
-    } else {
-      setIsValidSubdomain(true); // No subdomain, so allow access
-    }
+    const checkSubdomain = async () => {
+      if (subdomain) {
+        try {
+          const { data } = await axios.get(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`);
+       
+          setIsValidSubdomain(data?.valid); // Assuming API response structure like { valid: true }
+        } catch (error) {
+          console.error("Error checking subdomain:", error);
+          setIsValidSubdomain(false);
+        }
+      } else {
+        alert("No")
+        setIsValidSubdomain(true); // No subdomain, so allow access to public pages
+      }
+    };
+
+    checkSubdomain();
   }, [subdomain]);
 
   if (isValidSubdomain === null) {
