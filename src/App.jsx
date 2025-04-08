@@ -21,7 +21,7 @@ function AppRouter() {
 
   useEffect(() => {
     if (isValidSubdomain && subdomain) {
-      document.title = subdomain; 
+      document.title = `${subdomain} - Dashboard`;
     }
   }, [isValidSubdomain, subdomain]);
 
