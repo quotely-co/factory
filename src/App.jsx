@@ -12,50 +12,30 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 
-// New component for invalid subdomain error
-
-
 function AppRouter() {
   const [isValidSubdomain, setIsValidSubdomain] = useState(null);
   const hostParts = window.location.hostname.split(".");
   const isLocalhost = window.location.hostname === "localhost";
   const hasSubdomain = hostParts.length > 2 || (!isLocalhost && hostParts.length > 1);
   const subdomain = hasSubdomain ? hostParts[0] : null;
-  
+
   useEffect(() => {
-    // Check and save token from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-
-    if (token) {
-      localStorage.setItem("authToken", token); // Save to localStorage
-
-      // Remove the token from the URL
-      urlParams.delete("token");
-      const newUrl =
-        window.location.protocol +
-        "//" +
-        window.location.host +
-        window.location.pathname +
-        (urlParams.toString() ? "?" + urlParams.toString() : "");
-
-      window.history.replaceState({}, document.title, newUrl);
+    if (isValidSubdomain && subdomain) {
+      document.title = subdomain; 
     }
-  }, []);
-
+  }, [isValidSubdomain, subdomain]);
 
   useEffect(() => {
     const checkSubdomain = async () => {
       if (subdomain) {
         try {
           const { data } = await axios.get(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`);
-          setIsValidSubdomain(data?.valid); // Assuming API response structure like { valid: true }
+          setIsValidSubdomain(data?.valid);
         } catch (error) {
           console.error("Error checking subdomain:", error);
           setIsValidSubdomain(false);
         }
       } else {
-        // No subdomain, allow access to public pages
         setIsValidSubdomain(true);
       }
     };
@@ -64,10 +44,9 @@ function AppRouter() {
   }, [subdomain]);
 
   if (isValidSubdomain === null) {
-    return <LoadingSpinner />; // Show loading while checking
+    return <LoadingSpinner />;
   }
 
-  // If there's a subdomain but it's not valid, show the error component
   if (subdomain && isValidSubdomain === false) {
     return <InvalidSubdomainError />;
   }
@@ -80,7 +59,7 @@ function AppRouter() {
             <Route path="/*" element={<FactoryDashboard subdomain={subdomain} />} />
           ) : (
             <>
-              <Route path="/" element={<Support />} /> {/* Default route */}
+              <Route path="/" element={<Support />} />
               <Route path="/support" element={<Support />} />
               <Route path="/contact" element={<ContactUs />} />
               <Route path="/terms" element={<TermsOfService />} />
