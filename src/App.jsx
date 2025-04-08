@@ -21,6 +21,28 @@ function AppRouter() {
   const isLocalhost = window.location.hostname === "localhost";
   const hasSubdomain = hostParts.length > 2 || (!isLocalhost && hostParts.length > 1);
   const subdomain = hasSubdomain ? hostParts[0] : null;
+  
+  useEffect(() => {
+    // Check and save token from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+
+    if (token) {
+      localStorage.setItem("authToken", token); // Save to localStorage
+
+      // Remove the token from the URL
+      urlParams.delete("token");
+      const newUrl =
+        window.location.protocol +
+        "//" +
+        window.location.host +
+        window.location.pathname +
+        (urlParams.toString() ? "?" + urlParams.toString() : "");
+
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
+
 
   useEffect(() => {
     const checkSubdomain = async () => {
