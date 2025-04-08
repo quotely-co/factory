@@ -1,9 +1,9 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LoadingSpinner from "./components/common/Loading";
-import axios from "axios";
 import InvalidSubdomainError from "./pages/InvalidSubdomainError";
+import useSubdomainValidation from "./hooks/useSubdomainValidation";
 
 const FactoryDashboard = lazy(() => import("./pages/factory/FactoryDashboard"));
 const Support = lazy(() => import("./pages/Support"));
@@ -13,35 +13,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 
 function AppRouter() {
-  const [isValidSubdomain, setIsValidSubdomain] = useState(null);
-  const hostParts = window.location.hostname.split(".");
-  const isLocalhost = window.location.hostname === "localhost";
-  const hasSubdomain = hostParts.length > 2 || (!isLocalhost && hostParts.length > 1);
-  const subdomain = hasSubdomain ? hostParts[0] : null;
-
-  useEffect(() => {
-    if (isValidSubdomain && subdomain) {
-      document.title = `${subdomain} - Dashboard`;
-    }
-  }, [isValidSubdomain, subdomain]);
-
-  useEffect(() => {
-    const checkSubdomain = async () => {
-      if (subdomain) {
-        try {
-          const { data } = await axios.get(`https://api.quotely.shop/api/check-subdomain?subdomain=${subdomain}`);
-          setIsValidSubdomain(data?.valid);
-        } catch (error) {
-          console.error("Error checking subdomain:", error);
-          setIsValidSubdomain(false);
-        }
-      } else {
-        setIsValidSubdomain(true);
-      }
-    };
-
-    checkSubdomain();
-  }, [subdomain]);
+  const { isValidSubdomain, subdomain } = useSubdomainValidation();
 
   if (isValidSubdomain === null) {
     return <LoadingSpinner />;
