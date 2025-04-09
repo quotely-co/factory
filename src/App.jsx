@@ -14,7 +14,12 @@ const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 
 function AppRouter() {
   const { isValidSubdomain, subdomain } = useSubdomainValidation();
-
+  // if jwt if url then srtore and remove that from the url
+  const token = new URLSearchParams(window.location.search).get("token");
+  if (token) {
+    localStorage.setItem('token' , token)
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
   if (isValidSubdomain === null) {
     return <LoadingSpinner />;
   }

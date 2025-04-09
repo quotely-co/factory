@@ -23,7 +23,12 @@ const Sidebar = ({ onSidebarClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [shop, setShop] = useState({});
-  const { storeName } = useParams();
+  // take name from subdomain
+  const hostParts = window.location.hostname.split(".");
+  const isLocalhost = window.location.hostname === "localhost";
+  const hasSubdomain = hostParts.length > 2 || (!isLocalhost && hostParts.length > 1);
+  const subdomain = hasSubdomain ? hostParts[0] : null;
+
   const token = localStorage.getItem("token");
   const HOST = import.meta.env.VITE_HOST_URL;
 
@@ -31,7 +36,7 @@ const Sidebar = ({ onSidebarClose }) => {
     localStorage.removeItem("token");
     toast.success("Logged out successfully");
     if (onSidebarClose) onSidebarClose(); // Close sidebar on logout
-    navigate("/login");
+    window.location.href = "https://quotely.shop/factory/login"; // Redirect to the main site
   };
 
   // Modified navigation handler
@@ -72,7 +77,7 @@ const Sidebar = ({ onSidebarClose }) => {
           <Package className="h-6 w-6 text-primary-foreground" />
         </div>
         <div className="flex flex-col">
-          <span className="font-bold text-lg">{shop.shopName}</span>
+          <span className="font-bold text-lg">{subdomain}</span>
           <span className="text-xs text-muted-foreground">Factory Portal</span>
         </div>
       </div>
@@ -85,8 +90,8 @@ const Sidebar = ({ onSidebarClose }) => {
             <AvatarFallback>JD</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <span className="font-medium">{shop.shopName}</span>
-            <span className="text-xs text-muted-foreground">{shop.name}</span>
+            <span className="font-medium">{subdomain}</span>
+            <span className="text-xs text-muted-foreground">{subdomain}</span>
           </div>
         </div>
       </div>
