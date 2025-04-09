@@ -34,7 +34,7 @@ const Sidebar = ({ onSidebarClose }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${HOST}/api/logout`, {}, { withCredentials: true });
+      await axios.post(`${HOST}/api/auth/logout`, {}, { withCredentials: true });
       toast.success("Logged out successfully");
       window.location.href = "https://quotely.shop/factory/login"; // Redirect after logout
     } catch (error) {
