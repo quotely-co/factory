@@ -32,11 +32,15 @@ const Sidebar = ({ onSidebarClose }) => {
   const token = localStorage.getItem("token");
   const HOST = import.meta.env.VITE_HOST_URL;
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    toast.success("Logged out successfully");
-    if (onSidebarClose) onSidebarClose(); // Close sidebar on logout
-    window.location.href = "https://quotely.shop/factory/login"; // Redirect to the main site
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${HOST}/api/logout`, {}, { withCredentials: true });
+      toast.success("Logged out successfully");
+      window.location.href = "https://quotely.shop/factory/login"; // Redirect after logout
+    } catch (error) {
+      toast.error("Logout failed. Please try again.");
+      console.error("Logout Error:", error);
+    }
   };
 
   // Modified navigation handler
@@ -127,8 +131,8 @@ const Sidebar = ({ onSidebarClose }) => {
         <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">
           QUICK ACTIONS
         </div>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="w-full justify-start"
           onClick={() => {
             // Handle notification click
@@ -138,8 +142,8 @@ const Sidebar = ({ onSidebarClose }) => {
           <Bell className="mr-2 h-4 w-4" />
           Notifications
         </Button>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="w-full justify-start"
           onClick={() => {
             // Handle settings click
@@ -154,9 +158,9 @@ const Sidebar = ({ onSidebarClose }) => {
       {/* Logout */}
       <div className="mt-auto pt-4">
         <Separator className="mb-4" />
-        <Button 
-          variant="destructive" 
-          className="w-full justify-start" 
+        <Button
+          variant="destructive"
+          className="w-full justify-start"
           onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" /> Logout
