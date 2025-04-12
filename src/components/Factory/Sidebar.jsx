@@ -39,9 +39,6 @@ const Sidebar = ({ onSidebarClose }) => {
  
 
   const token = localStorage.getItem("token");
-  console.log('====================================');
-  console.log(token);
-  console.log('====================================');
   const HOST = import.meta.env.VITE_HOST_URL;
 
   // Check if token exists on component mount
@@ -52,7 +49,6 @@ const Sidebar = ({ onSidebarClose }) => {
     }else{
       setIsAdmin(false);
     }
-    alert(isAdmin)
     if (token) {
       fetchShop(token);
     }
