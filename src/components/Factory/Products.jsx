@@ -71,7 +71,7 @@ const VendorProducts = () => {
     try {
       setIsLoading(true);
       // Using the HOST variable instead of hardcoded URL
-      const res = await axios.get(`${HOST}/api/public/products`);
+      const res = await axios.get(`${HOST}/api/products`);
       setProducts(res.data);
     } catch (error) {
       console.error("Failed to fetch public products:", error);
