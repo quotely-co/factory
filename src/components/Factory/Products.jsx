@@ -5,8 +5,10 @@ import { toast } from "react-hot-toast";
 import ProductModal from "./ProductModal";
 import ProductTable from "./ProductTable";
 import { useNavigate } from "react-router-dom";
+import useSubdomainValidation from "@/hooks/useSubdomainValidation";
 
 const VendorProducts = () => {
+  const { isValidSubdomain, subdomain } = useSubdomainValidation();
   const [products, setProducts] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
@@ -23,6 +25,17 @@ const VendorProducts = () => {
     variations: [{ size: "", basePrice: "" }],
     fees: [{ name: "", amount: "" }],
     cbmRates: [{ quantity: "", cbm: "" }],
+    specifications: {
+      length: "",
+      width: "",
+      height: "",
+      capacity: "",
+      materialType: "",
+      gsm: "",
+      colorOptions: [],
+      printingTechnique: "",
+      customFinish: ""
+    },
     factoryId: ""
   });
   const [editingIndex, setEditingIndex] = useState(null);
@@ -73,7 +86,9 @@ const VendorProducts = () => {
     try {
       setIsLoading(true);
       // Using the HOST variable instead of hardcoded URL
-      const res = await axios.get(`${HOST}/api/products`);
+      const res = await axios.get(`${HOST}/api/products?shopname=${subdomain}`);
+      console.log(res);
+    
       setProducts(res.data);
     } catch (error) {
       console.error("Failed to fetch public products:", error);
@@ -115,7 +130,23 @@ const VendorProducts = () => {
   };
 
   const handleEdit = (index) => {
-    setForm(products[index]);
+    // Ensure the product has a specifications field
+    const productToEdit = {
+      ...products[index],
+      specifications: products[index].specifications || {
+        length: "",
+        width: "",
+        height: "",
+        capacity: "",
+        materialType: "",
+        gsm: "",
+        colorOptions: [],
+        printingTechnique: "",
+        customFinish: ""
+      }
+    };
+    
+    setForm(productToEdit);
     setEditingIndex(index);
     setIsModalOpen(true);
   };
@@ -203,6 +234,17 @@ const VendorProducts = () => {
       variations: [{ size: "", basePrice: "" }],
       fees: [{ name: "", amount: "" }],
       cbmRates: [{ quantity: "", cbm: "" }],
+      specifications: {
+        length: "",
+        width: "",
+        height: "",
+        capacity: "",
+        materialType: "",
+        gsm: "",
+        colorOptions: [],
+        printingTechnique: "",
+        customFinish: ""
+      },
       factoryId: ""
     });
   };
@@ -248,8 +290,31 @@ const VendorProducts = () => {
   // Filter products based on search term
   const filteredProducts = products.filter(product =>
     product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product?.category?.toLowerCase().includes(searchTerm.toLowerCase())
+    product?.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product?.specifications?.materialType?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Get base price from variations or fees
+  const getBasePrice = (product) => {
+    if (product.variations && product.variations.length > 0 && product.variations[0].basePrice) {
+      return parseFloat(product.variations[0].basePrice).toFixed(2);
+    } else if (product.fees && product.fees.length > 0 && product.fees[0].amount) {
+      return parseFloat(product.fees[0].amount).toFixed(2);
+    } else {
+      return "Contact for pricing";
+    }
+  };
+
+  // Get product specifications summary
+  const getSpecsSummary = (product) => {
+    const specs = product.specifications || {};
+    const parts = [];
+    
+    if (specs.materialType) parts.push(specs.materialType);
+    if (specs.gsm) parts.push(`${specs.gsm}gsm`);
+    
+    return parts.length > 0 ? parts.join(', ') : "Specifications not available";
+  };
 
   // Public View - User can see products without being logged in
   if (!isAuthenticated && !isLoading) {
@@ -322,9 +387,13 @@ const VendorProducts = () => {
                     {product.description || "No description available"}
                   </p>
 
+                  <div className="mt-2 text-xs text-gray-500">
+                    {getSpecsSummary(product)}
+                  </div>
+
                   <div className="mt-3 flex justify-between items-center">
                     <div className="font-medium text-gray-900">
-                      ${parseFloat(product.price).toFixed(2)}
+                      ${getBasePrice(product)}
                       <span className="text-xs text-gray-500 ml-1">/ {product.unit || "unit"}</span>
                     </div>
                     <div className="text-sm text-gray-500">
@@ -334,7 +403,7 @@ const VendorProducts = () => {
 
                   <div className="mt-4 pt-3 border-t flex justify-between items-center">
                     <span className="text-sm text-gray-500">
-                      Lead time: {product.leadTime || "Contact for details"}
+                      Lead time: {product.leadTime || "Contact for details"} days
                     </span>
                     <button
                       onClick={handleLogin}
