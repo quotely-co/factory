@@ -4,10 +4,12 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import ProductModal from "./ProductModal";
 import ProductTable from "./ProductTable";
+import { useNavigate } from "react-router-dom";
 
 const VendorProducts = () => {
   const [products, setProducts] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: "",
     price: "",
@@ -98,7 +100,7 @@ const VendorProducts = () => {
         params: { id: factoryId },
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setProducts(res.data);
     } catch (error) {
       console.error("Failed to fetch products:", error);
@@ -135,7 +137,7 @@ const VendorProducts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
-    
+
     if (!token) {
       toast.error("You must be logged in to perform this action");
       return;
@@ -154,7 +156,7 @@ const VendorProducts = () => {
       const factoryId = payload.factoryId;
 
       // Add factoryId to form data
-      const productData = { 
+      const productData = {
         ...form,
         factoryId: factoryId
       };
@@ -176,7 +178,7 @@ const VendorProducts = () => {
       setEditingIndex(null);
     } catch (error) {
       console.error("Error saving product:", error);
-      
+
       if (error.response) {
         // Handle specific error messages from the server
         const errorMsg = error.response.data.message || "An error occurred while saving the product.";
@@ -209,14 +211,14 @@ const VendorProducts = () => {
     if (file) {
       try {
         setIsUploading(true);
-        
+
         // Check file size before uploading (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
           toast.error("File is too large. Maximum file size is 5MB.");
           setIsUploading(false);
           return;
         }
-        
+
         const cloudinaryFormData = new FormData();
         cloudinaryFormData.append("file", file);
         cloudinaryFormData.append("upload_preset", "WhiteLabel");
@@ -258,7 +260,7 @@ const VendorProducts = () => {
             <h1 className="text-2xl font-bold text-gray-800">Product Catalog</h1>
             <p className="text-gray-600">Browse our available factory products</p>
           </div>
-          <button 
+          <button
             onClick={handleLogin}
             className="mt-3 sm:mt-0 py-2 px-4 bg-primary text-white rounded-lg flex items-center justify-center"
           >
@@ -266,7 +268,7 @@ const VendorProducts = () => {
             Login as Factory
           </button>
         </div>
-        
+
         <div className="mb-4 flex items-center">
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -293,12 +295,12 @@ const VendorProducts = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product, index) => (
-              <div key={product.id || index} className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="h-48 overflow-hidden bg-gray-100">
+              <div key={product._id || index} className="bg-white rounded-lg border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div className="h-48 overflow-hidden bg-gray-100 hover:cursor-pointer" onClick={() => navigate(`/product/${product._id}`)}>
                   {product.image ? (
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
+                    <img
+                      src={product.image}
+                      alt={product.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -307,7 +309,7 @@ const VendorProducts = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="p-4">
                   <div className="flex justify-between items-start">
                     <h3 className="font-medium text-lg text-gray-800 line-clamp-1">{product.name}</h3>
@@ -315,11 +317,11 @@ const VendorProducts = () => {
                       {product.category || "Uncategorized"}
                     </span>
                   </div>
-                  
+
                   <p className="mt-2 text-gray-600 text-sm line-clamp-2">
                     {product.description || "No description available"}
                   </p>
-                  
+
                   <div className="mt-3 flex justify-between items-center">
                     <div className="font-medium text-gray-900">
                       ${parseFloat(product.price).toFixed(2)}
@@ -329,12 +331,12 @@ const VendorProducts = () => {
                       MOQ: {product.moq || "1"} {product.unit || "pcs"}
                     </div>
                   </div>
-                  
+
                   <div className="mt-4 pt-3 border-t flex justify-between items-center">
                     <span className="text-sm text-gray-500">
                       Lead time: {product.leadTime || "Contact for details"}
                     </span>
-                    <button 
+                    <button
                       onClick={handleLogin}
                       className="py-1 px-3 bg-primary/10 text-primary text-sm rounded hover:bg-primary/20 transition-colors"
                     >
@@ -400,10 +402,10 @@ const VendorProducts = () => {
           </button>
         </div>
       ) : (
-        <ProductTable 
-          products={filteredProducts} 
-          handleEdit={handleEdit} 
-          handleDelete={handleDelete} 
+        <ProductTable
+          products={filteredProducts}
+          handleEdit={handleEdit}
+          handleDelete={handleDelete}
         />
       )}
 
