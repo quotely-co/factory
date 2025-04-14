@@ -7,6 +7,7 @@ import DashboardPanel from "../../components/Factory/DashboardPanel";
 import Products from "../../components/Factory/Products";
 import Quotations from "../../components/Factory/Quotations";
 import Sidebar from "@/components/Factory/Sidebar";
+import ProductDetail from "../../components/Factory/ProductDetail";
 
 const FactoryDashboard = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,9 +18,9 @@ const FactoryDashboard = () => {
       {/* Mobile Sidebar (Drawer) */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             className="lg:hidden fixed top-2 left-2 z-50 shadow-sm"
           >
             <Menu className="h-4 w-4" />
@@ -49,6 +50,7 @@ const FactoryDashboard = () => {
             <Route path="products" element={<Products />} />
             <Route path="analytics" element={<div>Analytics</div>} />
             <Route path="support" element={<div>Support</div>} />
+            <Route path="product/:productId" element={<ProductDetail />} />
           </Routes>
         </main>
       </div>
