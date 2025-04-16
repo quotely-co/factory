@@ -1,396 +1,365 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { X, Upload } from "lucide-react";
-import * as THREE from "three";
-import { OrbitControls as ThreeOrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { useState, useCallback, useEffect, useRef } from "react"
+import * as THREE from "three"
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"
+import Mug from "../../assets/model1.glb"
 
-// Replace this with your actual path
-import mug from "../../assets/coffee.glb";
+const ProductMockup3D = ({ isOpen, onClose }) => {
+  // Refs for DOM elements
+  const containerRef = useRef(null)
+  const imageSelectorRef = useRef(null)
+  const colorSelectorRef = useRef(null)
 
-const CupMockup3DModal = ({ isOpen, onClose, onSave }) => {
-    const containerRef = useRef(null);
-    const fileInputRef = useRef(null);
-    const colorInputRef = useRef(null);
+  // Refs for Three.js objects that need to persist between renders
+  const sceneRef = useRef(null)
+  const cameraRef = useRef(null)
+  const rendererRef = useRef(null)
+  const orbitControlsRef = useRef(null)
+  const meshRef = useRef(null)
+  const decalGeometryRef = useRef(null)
+  const materialRef = useRef(null)
 
-    const rendererRef = useRef(null);
-    const sceneRef = useRef(null);
-    const cameraRef = useRef(null);
-    const OrbitControlRef = useRef(null);
-    const cupMeshRef = useRef(null);
-    const logoMeshRef = useRef(null);
-    const logoMaterialRef = useRef(null);
-    const cupMaterialRef = useRef(null);
-    const [previewImageUrl, setPreviewImageUrl] = useState(null);
+  // If modal is not open, don't render anything
+  if (!isOpen) return null
 
-    // Helper function to create a decal (logo) on the cup
-    const applyLogoToCup = useCallback((imageURL) => {
-        if (!cupMeshRef.current) return;
+  // Initialize Three.js scene
+  const initScene = useCallback(() => {
+    if (!containerRef.current) return
 
-        // Create or update logo mesh if it exists
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.load(imageURL, (texture) => {
-            texture.encoding = THREE.sRGBEncoding;
+    // Create scene
+    const scene = new THREE.Scene()
+    sceneRef.current = scene
 
-            // Remove old logo if exists
-            if (logoMeshRef.current) {
-                sceneRef.current.remove(logoMeshRef.current);
-            }
+    // Create camera
+    const camera = new THREE.PerspectiveCamera(
+      20,
+      1000 / 1000,
+      1e-5,
+      1e10
+    )
+    cameraRef.current = camera
+    scene.add(camera)
 
-            // Create a plane geometry for the logo
-            const aspect = texture.image.width / texture.image.height;
-            const width = 0.5;
-            const height = width / aspect;
+    // Add lighting
+    const hemispheric = new THREE.HemisphereLight(0xffffff, 0x222222, 1)
+    scene.add(hemispheric)
 
-            const geometry = new THREE.PlaneGeometry(width, height);
-            const material = new THREE.MeshBasicMaterial({
-                map: texture,
-                transparent: true,
-                side: THREE.DoubleSide
-            });
+    // Setup renderer
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      logarithmicDepthBuffer: true,
+      alpha: true,
+    })
+    renderer.setClearColor(0x131316, 0)
+    renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.setSize(800, 800)
+    renderer.outputEncoding = THREE.sRGBEncoding
+    rendererRef.current = renderer
 
-            logoMaterialRef.current = material;
+    // Add canvas to DOM
+    containerRef.current.appendChild(renderer.domElement)
 
-            // Create logo mesh
-            const logoMesh = new THREE.Mesh(geometry, material);
-            logoMeshRef.current = logoMesh;
+    // Setup orbit controls
+    const orbitControls = new OrbitControls(camera, renderer.domElement)
+    orbitControlsRef.current = orbitControls
 
-            // Position the logo on the cup
-            logoMesh.position.set(0, 0, 0.8); // Adjust these values to position correctly
-            logoMesh.lookAt(new THREE.Vector3(0, 0, 5));
+    return { scene, camera, renderer, orbitControls }
+  }, [])
 
-            sceneRef.current.add(logoMesh);
-        });
-    }, []);
+  // Load the 3D model
+  const loadModel = useCallback(() => {
+    if (!sceneRef.current || !cameraRef.current || !orbitControlsRef.current) return
 
-    const setupTextureSelector = useCallback(() => {
-        const handleTextureChange = (event) => {
-            if (event.target.files.length > 0) {
-                const file = event.target.files[0];
-                const imageUrl = URL.createObjectURL(file);
-                setPreviewImageUrl(imageUrl);
-                applyLogoToCup(imageUrl);
-            }
-        };
+    const scene = sceneRef.current
+    const camera = cameraRef.current
+    const orbitControls = orbitControlsRef.current
 
-        if (fileInputRef.current) {
-            fileInputRef.current.addEventListener("change", handleTextureChange);
+    const loader = new GLTFLoader()
+    const cameraPos = new THREE.Vector3(-0.2, 0.1, 1.4)
+
+    loader.load(
+      Mug,
+      (gltf) => {
+        const object = gltf.scene
+
+        // Setup environment
+        if (rendererRef.current) {
+          const pmremGenerator = new THREE.PMREMGenerator(rendererRef.current)
+          pmremGenerator.compileEquirectangularShader()
         }
 
-        return () => {
-            if (fileInputRef.current) {
-                fileInputRef.current.removeEventListener("change", handleTextureChange);
-            }
-        };
-    }, [applyLogoToCup]);
+        // Center model based on bounding box
+        object.updateMatrixWorld()
+        const boundingBox = new THREE.Box3().setFromObject(object)
+        const modelSizeVec3 = new THREE.Vector3()
+        boundingBox.getSize(modelSizeVec3)
+        const modelSize = modelSizeVec3.length()
+        const modelCenter = new THREE.Vector3()
+        boundingBox.getCenter(modelCenter)
 
-    const setupColorSelector = useCallback(() => {
-        const handleColorChange = (event) => {
-            if (cupMaterialRef.current) {
-                cupMaterialRef.current.color.set(event.target.value);
-            }
-        };
+        // Configure orbit controls
+        orbitControls.reset()
+        orbitControls.maxDistance = modelSize * 50
+        orbitControls.enableDamping = true
+        orbitControls.dampingFactor = 0.07
+        orbitControls.rotateSpeed = 1.25
+        orbitControls.panSpeed = 1.25
+        orbitControls.screenSpacePanning = true
+        orbitControls.autoRotate = true
 
-        if (colorInputRef.current) {
-            colorInputRef.current.addEventListener("input", handleColorChange);
+        // Position camera and model
+        object.position.x = -modelCenter.x
+        object.position.y = -modelCenter.y
+        object.position.z = -modelCenter.z
+        camera.position.copy(modelCenter)
+        camera.position.x += modelSize * cameraPos.x
+        camera.position.y += modelSize * cameraPos.y
+        camera.position.z += modelSize * cameraPos.z
+        camera.near = modelSize / 100
+        camera.far = modelSize * 100
+        camera.updateProjectionMatrix()
+        camera.lookAt(modelCenter)
+
+        // Process the model meshes
+        object.traverse((obj) => {
+          if (obj instanceof THREE.Mesh && obj.name === "Mug_Porcelain_PBR001_0") {
+            materialRef.current = obj.material
+            meshRef.current = obj
+
+            setupTextureSelector()
+          } else if (obj instanceof THREE.Mesh && obj.name === "Mug_Porcelain_PBR002_0") {
+            const material = obj.material
+
+            setupColorSelector(material)
+          }
+        })
+        scene.add(object)
+      },
+      (error) => {
+        console.error(error)
+      }
+    )
+  }, [])
+
+  // Handle texture selection
+  const setupTextureSelector = useCallback(() => {
+    if (!imageSelectorRef.current || !materialRef.current) return
+
+    const handleTextureChange = (event) => {
+      if (materialRef.current) {
+        materialRef.current.map = convertImageToTexture(URL.createObjectURL(event.target.files[0]))
+      }
+    }
+    imageSelectorRef.current.addEventListener("input", handleTextureChange)
+
+    // Store cleanup function for later
+    return () => {
+      if (imageSelectorRef.current) {
+        imageSelectorRef.current.removeEventListener("input", handleTextureChange)
+      }
+    }
+  }, [])
+
+  // Handle color selection
+  const setupColorSelector = useCallback((material) => {
+    if (!colorSelectorRef.current) return
+
+    const handleColorChange = (event) => {
+      material.color.set(event.target.value)
+    }
+
+    colorSelectorRef.current.addEventListener("input", handleColorChange)
+
+    // Store cleanup function for later
+    return () => {
+      if (colorSelectorRef.current) {
+        colorSelectorRef.current.removeEventListener("input", handleColorChange)
+      }
+    }
+  }, [])
+
+  // Convert image URL to Three.js texture
+  const convertImageToTexture = useCallback((imageUrl) => {
+    const textureLoader = new THREE.TextureLoader()
+    const texture = textureLoader.load(imageUrl)
+    texture.encoding = THREE.sRGBEncoding
+    texture.flipY = true
+    texture.wrapS = THREE.RepeatWrapping
+    return texture
+  }, [])
+
+  // Animation loop
+  const animate = useCallback(() => {
+    if (!sceneRef.current || !cameraRef.current || !rendererRef.current || !orbitControlsRef.current) return
+
+    const scene = sceneRef.current
+    const camera = cameraRef.current
+    const renderer = rendererRef.current
+    const orbitControls = orbitControlsRef.current
+
+    const animationId = requestAnimationFrame(animate)
+
+    orbitControls.update()
+    renderer.render(scene, camera)
+
+    // Return the animation ID for cleanup
+    return animationId
+  }, [])
+
+  // Initialize everything
+  useEffect(() => {
+    if (isOpen) {
+      initScene()
+      loadModel()
+
+      const animationId = animate()
+
+      // Cleanup function
+      return () => {
+        // Cancel animation frame
+        if (animationId) {
+          cancelAnimationFrame(animationId)
         }
-
-        return () => {
-            if (colorInputRef.current) {
-                colorInputRef.current.removeEventListener("input", handleColorChange);
-            }
-        };
-    }, []);
-
-    const initScene = useCallback(() => {
-        if (!containerRef.current) return;
-
-        // Clear any existing renderer
-        if (rendererRef.current && containerRef.current.contains(rendererRef.current.domElement)) {
-            containerRef.current.removeChild(rendererRef.current.domElement);
+        // Remove the renderer from DOM
+        if (rendererRef.current && containerRef.current) {
+          containerRef.current.removeChild(rendererRef.current.domElement)
         }
-
-        const scene = new THREE.Scene();
-        sceneRef.current = scene;
-
-        const camera = new THREE.PerspectiveCamera(25, 1, 0.001, 10000);
-        cameraRef.current = camera;
-        scene.add(camera);
-
-        // Add lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(1, 1, 1);
-        scene.add(directionalLight);
-
-        const renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            logarithmicDepthBuffer: true,
-            alpha: true,
-        });
-        renderer.setClearColor(0x000000, 0);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientWidth);
-        renderer.outputEncoding = THREE.sRGBEncoding;
-        rendererRef.current = renderer;
-
-        containerRef.current.appendChild(renderer.domElement);
-
-        const controls = new ThreeOrbitControls(camera, renderer.domElement);
-        OrbitControlRef.current = controls;
-
-        return { scene, camera, renderer, controls };
-    }, []);
-
-    const loadModel = useCallback(() => {
-        if (!sceneRef.current || !rendererRef.current || !cameraRef.current) return;
-
-        const scene = sceneRef.current;
-        const camera = cameraRef.current;
-        const controls = OrbitControlRef.current;
-
-        const loader = new GLTFLoader();
-        const cameraPos = new THREE.Vector3(0, 0, 5);
-
-        loader.load(
-            mug,
-            (gltf) => {
-                const object = gltf.scene;
-
-                object.updateMatrixWorld();
-                const boundingBox = new THREE.Box3().setFromObject(object);
-                const modelSizevec3 = new THREE.Vector3();
-                boundingBox.getSize(modelSizevec3);
-                const modelSize = modelSizevec3.length();
-                const modelCenter = new THREE.Vector3();
-                boundingBox.getCenter(modelCenter);
-
-                controls.reset();
-                controls.maxDistance = modelSize * 50;
-                controls.enableDamping = true;
-                controls.dampingFactor = 0.25;
-                controls.rotateSpeed = 0.5;
-                controls.panSpeed = 0.5;
-                controls.screenSpacePanning = true;
-                controls.autoRotate = true;
-
-                object.position.copy(modelCenter.negate());
-
-                camera.position.set(
-                    modelSize * cameraPos.x,
-                    modelSize * cameraPos.y,
-                    modelSize * cameraPos.z
-                );
-                camera.near = modelSize / 100;
-                camera.far = modelSize * 100;
-                camera.updateProjectionMatrix();
-                camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-                object.traverse((obj) => {
-                    if (obj instanceof THREE.Mesh && obj.name === "Mug_Porcelain_PBR001_0") {
-                        cupMeshRef.current = obj;
-                    } else if (obj instanceof THREE.Mesh && obj.name === "Mug_Porcelain_PBR002_0") {
-                        cupMaterialRef.current = obj.material;
-                        setupColorSelector();
-                    }
-                });
-
-                scene.add(object);
-            },
-            undefined,
-            (err) => {
-                console.error("Error loading GLTF:", err);
-            }
-        );
-    }, [setupColorSelector]);
-
-    const animate = useCallback(() => {
-        if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !OrbitControlRef.current) return;
-
-        const renderer = rendererRef.current;
-        const scene = sceneRef.current;
-        const camera = cameraRef.current;
-        const controls = OrbitControlRef.current;
-
-        const animateLoop = () => {
-            controls.update();
-            renderer.render(scene, camera);
-            requestAnimationFrame(animateLoop);
-        };
-
-        animateLoop();
-    }, []);
-
-    // Handle window resize
-    const handleResize = useCallback(() => {
-        if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
-
-        const width = containerRef.current.clientWidth;
-        rendererRef.current.setSize(width, width);
-        cameraRef.current.aspect = 1;
-        cameraRef.current.updateProjectionMatrix();
-    }, []);
-
-    useEffect(() => {
-        if (isOpen && containerRef.current) {
-            initScene();
-            loadModel();
-            animate();
-            setupTextureSelector();
-
-            window.addEventListener('resize', handleResize);
-
-            // Set initial size
-            setTimeout(handleResize, 0);
-
-            return () => {
-                window.removeEventListener('resize', handleResize);
-
-                if (rendererRef.current && containerRef.current) {
-                    containerRef.current.removeChild(rendererRef.current.domElement);
-                    rendererRef.current.dispose();
-                }
-            };
+        // Dispose Three.js resources
+        if (rendererRef.current) {
+          rendererRef.current.dispose()
         }
-    }, [isOpen, initScene, loadModel, animate, setupTextureSelector, handleResize]);
+        if (decalGeometryRef.current) {
+          decalGeometryRef.current.dispose()
+        }
+      }
+    }
+  }, [isOpen, initScene, loadModel, animate])
 
-    const handleDownload = () => {
-        if (!rendererRef.current) return;
+  const download = () => {
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return
 
-        // Create a screenshot of the current view
-        const renderer = rendererRef.current;
-        renderer.preserveDrawingBuffer = true;
-        renderer.render(sceneRef.current, cameraRef.current);
+    const renderer = rendererRef.current
+    const scene = sceneRef.current
+    const camera = cameraRef.current
 
-        const dataURL = renderer.domElement.toDataURL('image/png');
-        renderer.preserveDrawingBuffer = false;
+    // Ensure orbit controls are updated
+    if (orbitControlsRef.current) {
+      orbitControlsRef.current.update()
+    }
 
-        // Create download link
-        const link = document.createElement('a');
-        link.href = dataURL;
-        link.download = 'custom-mug.png';
-        link.click();
-    };
+    // Force a render pass to ensure the scene is up-to-date
+    renderer.render(scene, camera)
 
-    // If modal is not open, don't render anything
-    if (!isOpen) return null;
+    // Create a new canvas for capturing the image
+    const captureCanvas = document.createElement("canvas")
+    captureCanvas.width = renderer.domElement.width
+    captureCanvas.height = renderer.domElement.height
+    const context = captureCanvas.getContext("2d")
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm transition-opacity">
-            <div
-                className="relative bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-5xl max-h-[90vh] flex flex-col animate-fadeIn"
-                onClick={(e) => e.stopPropagation()} // prevents click from bubbling to backdrop
-            >
-                {/* Modal Header */}
-                <div className="px-6 py-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-                    <h3 className="text-xl font-semibold text-gray-900">Customize Your Mug</h3>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-700 focus:outline-none"
-                    >
-                        <X size={24} />
-                    </button>
-                </div>
+    // Draw the WebGL canvas to our capture canvas
+    context.drawImage(renderer.domElement, 0, 0)
 
-                {/* Modal Content */}
-                <div className="p-6 flex flex-col md:flex-row gap-6 overflow-auto">
-                    {/* 3D Preview */}
-                    <div className="w-full md:w-2/3">
-                        <div
-                            ref={containerRef}
-                            className="w-full aspect-square bg-gray-50 rounded-lg border border-gray-200"
-                        ></div>
-                    </div>
+    // Convert the canvas to a data URL (PNG format with transparency)
+    // Using maximum quality (1.0)
+    const dataURL = captureCanvas.toDataURL("image/png", 1.0)
 
-                    {/* Controls */}
-                    <div className="w-full md:w-1/3 flex flex-col gap-6">
-                        {/* Logo Upload */}
-                        <div className="space-y-3">
-                            <h4 className="font-medium text-gray-900">1. Upload Your Logo</h4>
-                            <div className="flex items-center gap-3">
-                                <label
-                                    htmlFor="logo-upload"
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
-                                >
-                                    <Upload size={16} />
-                                    <span>Choose File</span>
-                                </label>
-                                <input
-                                    id="logo-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                />
-                            </div>
+    // Create a temporary anchor element to trigger the download
+    const link = document.createElement("a")
+    link.href = dataURL
+    link.download = "custom-mug.png"
 
-                            {previewImageUrl && (
-                                <div className="mt-3">
-                                    <p className="text-sm text-gray-600 mb-1">Preview:</p>
-                                    <img
-                                        src={previewImageUrl}
-                                        alt="Logo preview"
-                                        className="h-16 object-contain border border-gray-200 rounded"
-                                    />
-                                </div>
-                            )}
-                        </div>
+    // Append to body, click to download, then remove
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
-                        {/* Color Picker */}
-                        <div className="space-y-3">
-                            <h4 className="font-medium text-gray-900">2. Choose Cup Color</h4>
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="color"
-                                    ref={colorInputRef}
-                                    defaultValue="#ffffff"
-                                    className="w-10 h-10 rounded cursor-pointer border border-gray-300"
-                                />
-                                <span className="text-sm text-gray-600">Click to select color</span>
-                            </div>
-                        </div>
-
-                        {/* Download */}
-                        <div className="space-y-3 mt-auto">
-                            <h4 className="font-medium text-gray-900">3. Save Your Design</h4>
-                            <button
-                                onClick={handleDownload}
-                                className="w-full py-3 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center gap-2"
-                            >
-                                Download Preview
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/20 z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-screen overflow-auto">
+        {/* Modal header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-900">Custom Mug Designer</h3>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500 focus:outline-none"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-    );
-};
+        
+        {/* Modal content */}
+        <div className="p-6">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Preview container */}
+            <div className="flex-1">
+            <div ref={containerRef} className="w-full h-full md:h-full bg-black rounded-lg" />
+            </div>
+            
+            {/* Controls */}
+            <div className="w-full md:w-64 space-y-8">
+              <div className="space-y-2">
+                <h4 className="text-lg font-medium flex items-center">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white mr-2">1</span>
+                  Upload Image
+                </h4>
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <p className="text-sm text-gray-500">Click to upload image</p>
+                    </div>
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={imageSelectorRef}
+                    />
+                  </label>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h4 className="text-lg font-medium flex items-center">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white mr-2">2</span>
+                  Choose Color
+                </h4>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="color"
+                    ref={colorSelectorRef}
+                    defaultValue="#ffffff"
+                    className="w-12 h-12 rounded cursor-pointer"
+                  />
+                  <span className="text-gray-600">Select mug color</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h4 className="text-lg font-medium flex items-center">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white mr-2">3</span>
+                  Download Design
+                </h4>
+                <button
+                  onClick={download}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition duration-150 flex items-center justify-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Image
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
-// Export a wrapper component that manages the modal state
-const CupMockupModal = () => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    return (
-        <>
-            <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-                Customize Mug
-            </button>
-
-            <CupMockup3DModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSave={() => {
-                    console.log("Saving design");
-                    setIsModalOpen(false);
-                }}
-            />
-        </>
-    );
-};
-
-export default CupMockupModal;
+export default ProductMockup3D
