@@ -8,6 +8,7 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react(), svgr(),tailwindcss()],
+  assetsInclude:["**/*.glb"],
   server: {
     port: 3000,
   },

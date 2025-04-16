@@ -296,6 +296,7 @@ const VendorProducts = () => {
 
   // Get base price from variations or fees
   const getBasePrice = (product) => {
+  
     if (product.variations && product.variations.length > 0 && product.variations[0].basePrice) {
       return parseFloat(product.variations[0].basePrice).toFixed(2);
     } else if (product.fees && product.fees.length > 0 && product.fees[0].amount) {
@@ -437,7 +438,7 @@ const VendorProducts = () => {
         <h1 className="text-2xl font-bold">Manage Products</h1>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="py-2 px-4 bg-primary text-white rounded-lg flex items-center"
+          className="py-2 px-4 bg-primary text-white rounded-lg flex items-center hover:cursor-pointer"
         >
           <Plus size={20} className="mr-2" />
           Add Product

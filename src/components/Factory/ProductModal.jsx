@@ -121,12 +121,12 @@ const ProductModal = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black/50" onClick={() => setIsModalOpen(false)}></div>
       <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-white rounded-md p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b">
             <h2 className="text-xl font-bold">
               {editingIndex !== null ? "Edit Product" : "Add New Product"}
             </h2>
-            <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-full">
+            <button onClick={() => setIsModalOpen(false)} className="p-1 hover:cursor-pointer hover:bg-gray-100 rounded-full">
               <X size={20} />
             </button>
           </div>
