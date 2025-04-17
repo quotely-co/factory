@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import Mug from "../../assets/model1.glb";
+import Mug from "../../assets/mcdonalds_cup.glb";
 
 const ProductMockup3D = ({ isOpen, onClose }) => {
   // State for loading and error handling
@@ -167,7 +167,8 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
 
           // Process the model meshes
           object.traverse((obj) => {
-            if (obj instanceof THREE.Mesh && obj.name === "Mug_Porcelain_PBR001_0") {
+            console.log("Found mesh with name:", obj.name = "Sketchfab_Scene");
+            if (obj instanceof THREE.Mesh && obj.name) {
               // This is the main mug surface for image placement
               materialRef.current = obj.material;
               meshRef.current = obj;
@@ -176,13 +177,38 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
               if (selectedImage) {
                 materialRef.current.map = convertImageToTexture(selectedImage);
               }
-            } else if (obj instanceof THREE.Mesh && obj.name === "Mug_Porcelain_PBR002_0") {
+            } else if (obj instanceof THREE.Mesh && obj.name === "Sketchfab_Scene") {
               // This is the colored part of the mug
               mugColorMaterialRef.current = obj.material;
               mugColorMaterialRef.current.color.set(selectedColor);
             }
           });
-          
+
+          // Process the model meshes
+          // object.traverse((obj) => {
+          //   if (obj instanceof THREE.Mesh) {
+          //     // Check if this is the main body of the mug (larger mesh)
+          //     if (obj.name.includes("pCylinder2") || obj.name.includes("defaultMaterial")) {
+          //       console.log("Setting main mug body for texture:", obj.name);
+          //       materialRef.current = obj.material;
+          //       meshRef.current = obj;
+
+          //       // If there's a previously selected image, apply it
+          //       if (selectedImage) {
+          //         materialRef.current.map = convertImageToTexture(selectedImage);
+          //         materialRef.current.needsUpdate = true;
+          //       }
+          //     }
+          //     // Check if this is the handle or accent part (smaller mesh)
+          //     else if (obj.name.includes("pCylinder1") || obj.name.includes("defaultMaterial_1")) {
+          //       console.log("Setting mug handle/accent for color:", obj.name);
+          //       mugColorMaterialRef.current = obj.material;
+          //       mugColorMaterialRef.current.color.set(selectedColor);
+          //       mugColorMaterialRef.current.needsUpdate = true;
+          //     }
+          //   }
+          // });
+
           scene.add(object);
           setIsLoading(false);
         },
@@ -208,9 +234,10 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
       const textureLoader = new THREE.TextureLoader();
       const texture = textureLoader.load(imageUrl);
       texture.colorSpace = THREE.SRGBColorSpace;
-      texture.flipY = false; // Usually GLB models expect non-flipped textures
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
+      // Important for cylindrical mapping - don't flip
+      texture.flipY = false;
+
+
       return texture;
     } catch (err) {
       console.error("Error creating texture:", err);
@@ -221,13 +248,16 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
   // Handle texture selection
   const handleTextureChange = useCallback((event) => {
     if (!event.target.files || !event.target.files[0]) return;
-    
+  
     const file = event.target.files[0];
     const imageUrl = URL.createObjectURL(file);
     setSelectedImage(imageUrl);
-    
+  
     if (materialRef.current) {
-      materialRef.current.map = convertImageToTexture(imageUrl);
+      const texture = convertImageToTexture(imageUrl);
+      
+      // Apply to material
+      materialRef.current.map = texture;
       materialRef.current.needsUpdate = true;
     }
   }, [convertImageToTexture]);
@@ -236,7 +266,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
   const handleColorChange = useCallback((event) => {
     const color = event.target.value;
     setSelectedColor(color);
-    
+
     if (mugColorMaterialRef.current) {
       mugColorMaterialRef.current.color.set(color);
       mugColorMaterialRef.current.needsUpdate = true;
@@ -317,10 +347,10 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
         if (colorSelectorRef.current) {
           colorSelectorRef.current.addEventListener("input", handleColorChange);
         }
-        
+
         // Load the model
         loadModel();
-        
+
         // Start animation loop
         animate();
       }
@@ -335,22 +365,22 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
         if (colorSelectorRef.current) {
           colorSelectorRef.current.removeEventListener("input", handleColorChange);
         }
-        
+
         // Cancel animation frame
         if (animationIdRef.current) {
           cancelAnimationFrame(animationIdRef.current);
         }
-        
+
         // Clean up Three.js resources
         if (rendererRef.current) {
           rendererRef.current.dispose();
         }
-        
+
         // Clean up materials and textures
         if (materialRef.current && materialRef.current.map) {
           materialRef.current.map.dispose();
         }
-        
+
         // Run any additional cleanup functions
         cleanupFunctionsRef.current.forEach(fn => fn());
       };
@@ -363,7 +393,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h3 className="text-2xl font-semibold text-gray-800">Design Your Custom Mug</h3>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 focus:outline-none transition-colors duration-200"
             aria-label="Close"
@@ -373,7 +403,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
             </svg>
           </button>
         </div>
-        
+
         {/* Modal content */}
         <div className="flex-1 overflow-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 h-full">
@@ -384,7 +414,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
                   <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
                 </div>
               )}
-              
+
               {error && (
                 <div className="absolute inset-0 flex items-center justify-center bg-red-50 rounded-lg">
                   <div className="text-red-600 text-center p-4">
@@ -392,7 +422,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <p className="font-medium">{error}</p>
-                    <button 
+                    <button
                       className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                       onClick={loadModel}
                     >
@@ -401,12 +431,12 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
                   </div>
                 </div>
               )}
-              
+
               <div ref={containerRef} className="w-full h-full" />
-              
+
               {/* Controls overlay */}
               <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-sm rounded-full shadow-md p-2">
-                <button 
+                <button
                   onClick={toggleAutoRotate}
                   className={`p-2 rounded-full ${autoRotate ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'} hover:bg-blue-200 transition-colors`}
                   title={autoRotate ? "Stop Rotation" : "Start Rotation"}
@@ -417,7 +447,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
                 </button>
               </div>
             </div>
-            
+
             {/* Controls - 1/3 width on larger screens */}
             <div className="space-y-6">
               {/* Upload Image Section */}
@@ -439,7 +469,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
                       )}
                       <p className="text-xs text-gray-400 mt-1">Recommended: 800x800px</p>
                     </div>
-                    <input 
+                    <input
                       type="file"
                       accept="image/*"
                       className="hidden"
@@ -448,7 +478,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
                   </label>
                 </div>
               </div>
-              
+
               {/* Choose Color Section */}
               <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
                 <h4 className="text-lg font-medium flex items-center mb-3 text-gray-800">
@@ -485,7 +515,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Download Section */}
               <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
                 <h4 className="text-lg font-medium flex items-center mb-3 text-gray-800">
@@ -506,7 +536,7 @@ const ProductMockup3D = ({ isOpen, onClose }) => {
             </div>
           </div>
         </div>
-        
+
         {/* Modal footer */}
         <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
           <div className="text-sm text-gray-500">
