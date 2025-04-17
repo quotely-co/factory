@@ -60,7 +60,7 @@ const Sidebar = ({ onSidebarClose }) => {
       toast.success("Logged out successfully");
       localStorage.removeItem("token"); // Remove token from localStorage
       setIsAdmin(false); // Update state
-      window.location.href = "https://quotely.shop/factory/login"; // Redirect after logout
+      window.location.href = "https://quotely.shop/factory/login?logout=true"; // Redirect after logout
     } catch (error) {
       toast.error("Logout failed. Please try again.");
       console.error("Logout Error:", error);
