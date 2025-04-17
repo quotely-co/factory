@@ -52,7 +52,7 @@ const Sidebar = ({ onSidebarClose }) => {
     if (token) {
       fetchShop(token);
     }
-  }, [token]);
+  }, [token ]);
 
   const handleLogout = async () => {
     try {
